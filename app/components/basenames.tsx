@@ -167,13 +167,6 @@ const Basenames = () => {
     }
   };
 
-  // Handle clicking on a profile
-  const handleProfileClick = (name: string) => {
-    const nameWithoutSuffix = name.replace(".base.eth", "");
-    // Navigate directly to the details page
-    router.push(`/basename/${encodeURIComponent(nameWithoutSuffix)}`);
-  };
-
   const isMobile = windowSize.width < 640;
   const isVerySmall = windowSize.width < 360;
 
@@ -182,7 +175,7 @@ const Basenames = () => {
     // Top profiles
     {
       name: "jesse.base.eth",
-      position: { top: "15%", left: "15%" },
+      position: { top: "15%", left: "10%" },
       imagePath: "/jesse.png",
     },
     {
@@ -192,7 +185,7 @@ const Basenames = () => {
     },
     {
       name: "eric.base.eth",
-      position: { top: "15%", right: "15%" },
+      position: { top: "15%", right: "10%" },
       imagePath: "/eric.png",
     },
 
@@ -270,9 +263,8 @@ const Basenames = () => {
             return (
               <div
                 key={index}
-                className={`absolute p-1 sm:p-2 border-2 border-gray-300 rounded-lg opacity-60 flex items-center shadow-sm ${isVerySmall ? "max-w-[120px]" : "max-w-[180px]"} cursor-pointer transition-all duration-200 hover:opacity-80 hover:border-blue-400`}
+                className={`absolute p-1 sm:p-2 border-2 border-gray-300 rounded-lg opacity-60 flex items-center shadow-sm ${isVerySmall ? "max-w-[120px]" : "max-w-[180px]"} cursor-pointer transition-all duration-200`}
                 style={responsivePosition}
-                onClick={() => handleProfileClick(profile.name)}
               >
                 <div
                   className={`${isVerySmall ? "w-6 h-6" : "w-8 h-8"} rounded-full bg-gray-200 flex items-center justify-center mr-1 sm:mr-2 overflow-hidden`}

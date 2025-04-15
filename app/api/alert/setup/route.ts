@@ -107,9 +107,10 @@ export async function POST(request: Request) {
         token: preference.token,
         url: preference.url,
         title: "Basenames Frame Alert",
-        body: `${baseName} Alert has been set`,
+        body: enabled
+          ? `${baseName}.base.eth alert has been set`
+          : `${baseName}.base.eth alert has been disabled`,
       });
-
       console.log("notification response: ", notificationSent);
 
       if (notificationSent) {
@@ -118,34 +119,6 @@ export async function POST(request: Request) {
         console.log(
           `Failed to send notification with preference token for FID ${fid}`,
         );
-      }
-
-      if (!notificationSent) {
-        // Get notification details from the notification system
-        const notificationDetails = await getUserNotificationDetails(parseInt(fid));
-
-        if (notificationDetails?.token && notificationDetails?.url) {
-          notificationSent = await sendDirectNotification({
-            token: notificationDetails.token,
-            url: notificationDetails.url,
-            title: "Daily Meditation Reminder",
-            body: "Take a moment to breathe and center yourself with a meditation session.",
-          });
-
-          console.log("notification response: ", notificationSent);
-
-          if (notificationSent) {
-            console.log(
-              `Notification sent using notification service for FID ${fid}`,
-            );
-          } else {
-            console.warn(
-              `Failed to send notification via notification service for FID ${fid}`,
-            );
-          }
-        } else {
-          console.warn(`No notification details found for FID ${fid}`);
-        }
       }
     }
 

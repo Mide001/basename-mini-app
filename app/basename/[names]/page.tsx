@@ -17,17 +17,19 @@ import {
   Dribbble,
   Slack,
   User,
+  Share2,
+  X,
 } from "lucide-react";
+import AlertModal from "@/app/components/AlertModal";
 import { useMiniKit, useAddFrame } from "@coinbase/onchainkit/minikit";
 import SocialProfiles from "../../components/SocialProfiles";
-import { sdk } from "@farcaster/frame-sdk"
 
 type RequestBody = {
   expiryDate: string;
   token: string;
   url: string;
   enabled: boolean;
-  baseName: string; // Changed from basename to baseName
+  baseName: string;
 };
 
 type OwnerDetails = {
@@ -95,14 +97,17 @@ const BasenameDetailsPage = () => {
   const [ownerDetails, setOwnerDetails] = useState<OwnerDetails | null>(null);
   const [socialProfiles, setSocialProfiles] = useState<SocialProfile[]>([]);
   const [error, setError] = useState<string | null>(null);
-  // New state to handle alert response feedback
+
+  // Alert state
   const [alertResponse, setAlertResponse] = useState<{
     message: string;
     success: boolean;
   } | null>(null);
-
   const [alertEnabled, setAlertEnabled] = useState<boolean>(false);
   const [isCheckingAlert, setIsCheckingAlert] = useState<boolean>(true);
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const { context } = useMiniKit();
   const addFrame = useAddFrame();
@@ -161,7 +166,6 @@ const BasenameDetailsPage = () => {
 
             // Fetch social profiles
             await fetchSocialProfiles(data.owner);
-
           } else {
             throw new Error("Owner not found");
           }
@@ -257,6 +261,29 @@ const BasenameDetailsPage = () => {
     }
   };
 
+  // Share functionality
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator
+        .share({
+          title: `${name}.base.eth Alert Set`,
+          text: `I'm tracking ${name}.base.eth using BasenameTracker!`,
+          url: window.location.href,
+        })
+        .catch((err) => console.error("Error sharing:", err));
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      navigator.clipboard
+        .writeText(window.location.href)
+        .then(() => {
+          alert("Link copied to clipboard!");
+        })
+        .catch((err) => {
+          console.error("Could not copy text: ", err);
+        });
+    }
+  };
+
   // Helper function to truncate Ethereum address
   const truncateAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -283,36 +310,7 @@ const BasenameDetailsPage = () => {
     !error ||
     (!error.includes("available") && !error.includes("not registered"));
 
-  // Handle setting alert
-  const handleSetAlert = async () => {
-    setAlertResponse(null); // Clear previous response
-    try {
-      const response = await fetch("/api/alert/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fid: context?.user?.fid, // or however you're identifying them
-          basename: name,
-          expiryDate: ownerDetails?.expiryDate?.split("T")[0], // 'YYYY-MM-DD'
-        }),
-      });
-
-      const result = await response.json();
-      // Set response message instead of showing an alert
-      setAlertResponse({
-        message: result.success
-          ? "✅ Alert successfully set!"
-          : "❌ Error setting alert",
-        success: result.success,
-      });
-    } catch (err) {
-      setAlertResponse({
-        message: "❌ Error setting alert: Network or server issue",
-        success: false,
-      });
-    }
-  };
-
+  // Handle toggling alert
   const handleToggleAlert = async () => {
     setAlertResponse(null); // Clear previous response
 
@@ -321,6 +319,7 @@ const BasenameDetailsPage = () => {
         message: "❌ Please connect your Farcaster account first",
         success: false,
       });
+      setIsModalOpen(true);
       return;
     }
 
@@ -328,7 +327,7 @@ const BasenameDetailsPage = () => {
       const enabledStatus = !alertEnabled;
 
       // Prepare request body
-      const requestBody = {
+      const requestBody: RequestBody = {
         enabled: enabledStatus,
         token: "",
         url: "",
@@ -350,6 +349,7 @@ const BasenameDetailsPage = () => {
             message: "❌ Frame access was denied. Alert can't be enabled.",
             success: false,
           });
+          setIsModalOpen(true);
           return;
         }
 
@@ -383,12 +383,16 @@ const BasenameDetailsPage = () => {
       if (result.success) {
         setAlertEnabled(enabledStatus);
       }
+
+      // Open the modal to show the response
+      setIsModalOpen(true);
     } catch (err) {
       console.error("Error setting alert:", err);
       setAlertResponse({
         message: "❌ Error setting alert: Network or server issue",
         success: false,
       });
+      setIsModalOpen(true);
     }
   };
 
@@ -628,19 +632,6 @@ const BasenameDetailsPage = () => {
             )}
 
             <div className="mt-4">
-              {/* Show response message if available */}
-              {alertResponse && (
-                <div
-                  className={`mb-3 p-2 rounded-md text-center text-sm ${
-                    alertResponse.success
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  <p>{alertResponse.message}</p>
-                </div>
-              )}
-
               {alertEnabled && (
                 <div className="mb-3 p-2 rounded-md text-center text-sm bg-blue-100 text-blue-800">
                   <p>🔔 You will be notified before this ENS name expires</p>
@@ -651,6 +642,15 @@ const BasenameDetailsPage = () => {
             </div>
           </div>
         )}
+
+        {/* Alert Modal */}
+        <AlertModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          message={alertResponse?.message || ""}
+          success={alertResponse?.success || false}
+          onShare={handleShare}
+        />
       </div>
     </div>
   );
