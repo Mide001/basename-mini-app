@@ -21,6 +21,7 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
 } from "wagmi";
+import { keccak256, stringToBytes, concat } from "viem";
 import { parseEther } from "viem";
 import { encodeFunctionData } from "viem";
 import { namehash } from "@/lib/utils";
@@ -59,7 +60,7 @@ const contractAbi = [
   },
 ];
 
-const CONTRACT_ADDRESS = "0x4cCb0BB02FCABA27e82a56646E81d8c5bC4119a5"; 
+const CONTRACT_ADDRESS = "0x4cCb0BB02FCABA27e82a56646E81d8c5bC4119a5";
 
 interface PriceData {
   name: string;
@@ -190,22 +191,24 @@ const BasenamePurchasePage = ({ params }: { params: { name: string } }) => {
   React.useEffect(() => {
     fetchPriceData();
   }, [fetchPriceData]);
+
   const getHardcodedResolverData = (
     nameNode: string,
     ownerAddress: string,
   ): `0x${string}`[] => {
-    // Input validation
-    if (!nameNode.startsWith("0x") || nameNode.length !== 66) {
-      console.error("Invalid nameNode format:", nameNode);
-      return []; // Return empty array instead of throwing
-    }
-
-    if (!ownerAddress.startsWith("0x") || ownerAddress.length !== 42) {
-      console.error("Invalid ownerAddress format:", ownerAddress);
-      return []; // Return empty array instead of throwing
-    }
+    // Root node for Base ENS
+    const rootNode =
+      "0xff1e3c0eb00ec714e34b6114125fbde1dea2f24a72fbf672e7b7fd5690328e10" as `0x${string}`;
 
     try {
+      // Calculate the label (node without the root prefix)
+      const label = keccak256(stringToBytes(baseName));
+      const nodehash = keccak256(concat([rootNode, label]));
+
+      console.log("Label:", label);
+      console.log("Nodehash:", nodehash);
+
+      // Encode the setAddr function call
       const setAddrData = encodeFunctionData({
         abi: [
           {
@@ -220,12 +223,14 @@ const BasenamePurchasePage = ({ params }: { params: { name: string } }) => {
           },
         ],
         functionName: "setAddr",
-        args: [nameNode as `0x${string}`, ownerAddress as `0x${string}`],
+        args: [nodehash, ownerAddress as `0x${string}`],
       });
 
+      console.log("Generated resolver data:", setAddrData);
       return [setAddrData];
     } catch (error) {
       console.error("Error generating resolver data:", error);
+      // Return empty array as fallback
       return [];
     }
   };
@@ -236,28 +241,20 @@ const BasenamePurchasePage = ({ params }: { params: { name: string } }) => {
     try {
       setTxStatus("pending");
 
-      // Calculate namehash for the full name
-      const nameNode = namehash(`${baseName}.base.eth`);
-      console.log(`Namehash for '${baseName}.base.eth':`, nameNode);
-
       // Get properly formatted resolver data
-      const resolverData = getHardcodedResolverData(nameNode, address);
+      const resolverData = getHardcodedResolverData(baseName, address);
+
       console.log("Resolver data:", resolverData);
 
-      // Create register request with proper data formatting
+      // Create register request
       const registerRequest = {
         name: baseName,
         owner: address,
         duration: BigInt(durationInSeconds),
         resolver: "0xC6d566A56A1aFf6508b41f6c90ff131615583BCD",
-        data: [],
-        reverseRecord: true,
+        data: resolverData,
+        reverseRecord: true, // Keep this true to set as primary name
       };
-
-      // Ensure the price is valid
-      if (!priceData.price || parseFloat(priceData.price) <= 0) {
-        throw new Error("Invalid price data");
-      }
 
       console.log("Register request:", {
         name: registerRequest.name,
@@ -265,11 +262,10 @@ const BasenamePurchasePage = ({ params }: { params: { name: string } }) => {
         duration: registerRequest.duration.toString(),
         resolver: registerRequest.resolver,
         dataLength: registerRequest.data.length,
-        price: priceData.price,
       });
 
       await writeContract({
-        address: CONTRACT_ADDRESS as `0x${string}`,
+        address: CONTRACT_ADDRESS,
         abi: contractAbi,
         functionName: "register",
         args: [registerRequest],
@@ -277,6 +273,14 @@ const BasenamePurchasePage = ({ params }: { params: { name: string } }) => {
       });
     } catch (error) {
       console.error("Registration failed:", error);
+      let errorMessage: string;
+      if (error && typeof error === "object") {
+        errorMessage =
+          (error as { message?: string }).message || JSON.stringify(error);
+      } else {
+        errorMessage = String(error);
+      }
+      console.log("Detailed error:", errorMessage);
       setTxStatus("error");
     }
   };

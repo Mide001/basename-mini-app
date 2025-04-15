@@ -40,7 +40,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-background overflow-hidden">
+      <body>
         <Providers>{children}</Providers>
       </body>
     </html>

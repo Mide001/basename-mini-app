@@ -22,48 +22,74 @@ const Basenames = () => {
   const [searchResults, setSearchResults] = useState<{
     name: string;
     isAvailable?: boolean;
+    owner?: string;
+    expiry?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const router = useRouter();
   const [windowSize, setWindowSize] = useState({
-    width: typeof window !== "undefined" ? window.innerWidth : 0,
-    height: typeof window !== "undefined" ? window.innerHeight : 0,
+    width: 0,
+    height: 0,
   });
 
-  // Handle window resize
+  // Check if client is ready
+  const [isClientReady, setIsClientReady] = useState(false);
+
+  // Handle window resize - using layout effect for faster dimension capture
   useEffect(() => {
+    function handleResize() {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+      setIsClientReady(true);
+    }
+
+    // Check if window is available
     if (typeof window !== "undefined") {
-      const handleResize = () => {
-        setWindowSize({
-          width: window.innerWidth,
-          height: window.innerHeight,
-        });
-      };
+      // Set initial size immediately
+      handleResize();
 
+      // Add event listener
       window.addEventListener("resize", handleResize);
-      handleResize(); // Set initial size
 
+      // Cleanup
       return () => window.removeEventListener("resize", handleResize);
     }
   }, []);
 
-  // Check name availability function
   const checkNameAvailability = async (name: string) => {
     if (!name) {
       setSearchResults(null);
       return;
     }
 
+    // Check if name is too short (less than 3 characters)
+    if (name.length < 3) {
+      setErrorMessage("Name is too short. Minimum 3 characters required.");
+      setSearchResults(null);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
+    setErrorMessage(null);
+
     try {
       const response = await fetch(`/api/check-basename?name=${name}`);
       if (!response.ok) {
         throw new Error("Failed to check name availability");
       }
       const data = await response.json();
+      console.log("Data: ", data);
+
+      // Store all the data returned from the API
       setSearchResults({
         name: `${name}.base.eth`,
         isAvailable: data.isAvailable,
+        owner: data.owner,
+        expiry: data.expiry,
       });
     } catch (error) {
       console.error("Error checking name availability:", error);
@@ -73,15 +99,15 @@ const Basenames = () => {
     }
   };
 
-  // Create a debounced version of checkNameAvailability
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedCheck = useCallback(
     debounce((name: string) => {
       if (name.trim()) {
-        const nameToCheck = name.trim().toLowerCase().replace(".base.eth", "");
+        const nameToCheck = name.trim().toLowerCase();
         checkNameAvailability(nameToCheck);
       } else {
         setSearchResults(null);
+        setErrorMessage(null);
       }
     }, 500),
     [],
@@ -89,37 +115,104 @@ const Basenames = () => {
 
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
+    // Remove all dots from input to prevent users from typing "."
+    const newValue = e.target.value.replace(/\./g, "");
     setValue(newValue);
+
     if (newValue.trim()) {
       setIsLoading(true);
+      // Check if name is too short immediately for UX purposes
+      if (newValue.length < 3) {
+        setErrorMessage("Name is too short. Minimum 3 characters required.");
+      } else {
+        setErrorMessage(null);
+      }
+    } else {
+      setErrorMessage(null);
     }
+
     debouncedCheck(newValue);
   };
 
-// Handle clicking on a search result
-const handleResultClick = () => {
+  const handleResultClick = async () => {
     if (!searchResults) return;
-  
+    if (errorMessage) return; // Don't proceed if there's an error
+
     const nameWithoutSuffix = searchResults.name.replace(".base.eth", "");
-    
+
+    // Additional check to ensure minimum length requirement
+    if (nameWithoutSuffix.length < 3) {
+      setErrorMessage("Name is too short. Minimum 3 characters required.");
+      return;
+    }
+
     console.log("Searching for name:", nameWithoutSuffix);
-    
+
     if (searchResults.isAvailable) {
-      // Make sure to use the correct path format
+      // Navigate to purchase page if available
       console.log(`Routing to purchase page for: ${nameWithoutSuffix}`);
-      router.push(`/basename/purchase/${encodeURIComponent(nameWithoutSuffix)}`);
+      router.push(
+        `/basename/purchase/${encodeURIComponent(nameWithoutSuffix)}`,
+      );
     } else {
-      // Route to details page if unavailable
-      router.push(`/basename/${encodeURIComponent(nameWithoutSuffix)}`);
+      // For unavailable names, construct the query parameters
+      const params = new URLSearchParams();
+      if (searchResults.owner) params.append("owner", searchResults.owner);
+      if (searchResults.expiry) params.append("expiry", searchResults.expiry);
+
+      const queryString = params.toString();
+      router.push(
+        `/basename/${encodeURIComponent(nameWithoutSuffix)}${queryString ? "?" + queryString : ""}`,
+      );
     }
   };
 
   // Handle clicking on a profile
   const handleProfileClick = (name: string) => {
     const nameWithoutSuffix = name.replace(".base.eth", "");
-    router.push(`/basename/${nameWithoutSuffix}`);
+    // Navigate directly to the details page
+    router.push(`/basename/${encodeURIComponent(nameWithoutSuffix)}`);
   };
+
+  const isMobile = windowSize.width < 640;
+  const isVerySmall = windowSize.width < 360;
+
+  // Updated profile positions with a clearer top/bottom separation
+  const baseProfiles: Profile[] = [
+    // Top profiles
+    {
+      name: "jesse.base.eth",
+      position: { top: "15%", left: "15%" },
+      imagePath: "/jesse.png",
+    },
+    {
+      name: "defidevrel.base.eth",
+      position: { top: "25%", left: "30%" },
+      imagePath: "/defidevrel.png",
+    },
+    {
+      name: "eric.base.eth",
+      position: { top: "15%", right: "15%" },
+      imagePath: "/eric.png",
+    },
+
+    // Bottom profiles
+    {
+      name: "techwithmide.base.eth",
+      position: { bottom: "25%", left: "30%" },
+      imagePath: "/techwithmide.png",
+    },
+    {
+      name: "njoku.base.eth",
+      position: { bottom: "15%", left: "10%" },
+      imagePath: "/njoku.png",
+    },
+    {
+      name: "dami.base.eth",
+      position: { bottom: "15%", right: "10%" },
+      imagePath: "/dami.png",
+    },
+  ];
 
   // Adjust base profile positions based on screen size
   const getResponsivePosition = (
@@ -127,108 +220,83 @@ const handleResultClick = () => {
     isMobile: boolean,
     isVerySmall: boolean,
   ): Position => {
-    // For very small screens, adjust more dramatically
+    const adjustedPosition = { ...position };
+
+    // For very small screens
     if (isVerySmall) {
+      // Adjust top profiles to be higher
       if (position.top) {
-        return { ...position, top: `${parseInt(position.top) - 5}%` };
+        adjustedPosition.top = `${Math.max(5, parseInt(position.top as string) - 5)}%`;
       }
+
+      // Adjust bottom profiles to be lower
       if (position.bottom) {
-        return { ...position, bottom: `${parseInt(position.bottom) - 5}%` };
+        adjustedPosition.bottom = `${Math.max(5, parseInt(position.bottom as string) - 5)}%`;
       }
-      return position;
-    }
 
-    // For regular mobile screens
-    if (isMobile) {
-      if (position.right === "35%") {
-        return { ...position, right: "20%" };
-      }
-      if (position.left === "40%") {
-        return { ...position, left: "30%" };
+      // Handle left/right positioning for small screens
+      if (position.left === "50%") {
+        adjustedPosition.left = "40%";
       }
     }
+    // For regular mobile
+    else if (isMobile) {
+      // Top profiles should be higher
+      if (position.top) {
+        adjustedPosition.top = `${parseInt(position.top as string) - 2}%`;
+      }
 
-    return position;
+      // Bottom profiles should be lower to provide more space
+      if (position.bottom) {
+        adjustedPosition.bottom = `${parseInt(position.bottom as string) - 2}%`;
+      }
+    }
+
+    return adjustedPosition;
   };
 
-  // Sample base names with predefined positions
-  const baseProfiles: Profile[] = [
-    {
-      name: "jesse.base.eth",
-      position: { top: "30%", right: "35%" },
-      imagePath: "/jesse.png",
-    },
-    {
-      name: "dami.base.eth",
-      position: { top: "40%", left: "0%" },
-      imagePath: "/dami.png",
-    },
-    {
-      name: "eric.base.eth",
-      position: { top: "40%", right: "0%" },
-      imagePath: "/eric.png",
-    },
-    {
-      name: "techwithmide.base.eth",
-      position: { bottom: "30%", left: "0%" },
-      imagePath: "/techwithmide.png",
-    },
-    {
-      name: "njoku.base.eth",
-      position: { bottom: "30%", right: "0%" },
-      imagePath: "/njoku.png",
-    },
-    {
-      name: "defidevrel.base.eth",
-      position: { bottom: "25%", left: "40%" },
-      imagePath: "/defidevrel.png",
-    },
-  ];
-
-  const isMobile = windowSize.width < 640;
-  const isVerySmall = windowSize.width < 360;
-
   return (
-    <div className="relative flex items-center justify-center w-full h-[70vh] sm:h-screen overflow-hidden">
+    <div className="relative flex items-center justify-center w-full h-[80vh] sm:h-screen overflow-hidden">
       {/* Background base names with profile images */}
       <div className="absolute inset-0">
-        {baseProfiles.map((profile, index) => {
-          const responsivePosition = getResponsivePosition(
-            profile.position,
-            isMobile,
-            isVerySmall,
-          );
+        {isClientReady &&
+          baseProfiles.map((profile, index) => {
+            const responsivePosition = getResponsivePosition(
+              profile.position,
+              isMobile,
+              isVerySmall,
+            );
 
-          return (
-            <div
-              key={index}
-              className={`absolute p-1 sm:p-2 border-2 border-gray-300 rounded-lg opacity-60 flex items-center shadow-sm ${isVerySmall ? "max-w-[120px]" : "max-w-[180px]"} cursor-pointer transition-all duration-200`}
-              style={responsivePosition}
-              onClick={() => handleProfileClick(profile.name)}
-            >
+            return (
               <div
-                className={`${isVerySmall ? "w-6 h-6" : "w-8 h-8"} rounded-full bg-gray-200 flex items-center justify-center mr-1 sm:mr-2 overflow-hidden`}
+                key={index}
+                className={`absolute p-1 sm:p-2 border-2 border-gray-300 rounded-lg opacity-60 flex items-center shadow-sm ${isVerySmall ? "max-w-[120px]" : "max-w-[180px]"} cursor-pointer transition-all duration-200 hover:opacity-80 hover:border-blue-400`}
+                style={responsivePosition}
+                onClick={() => handleProfileClick(profile.name)}
               >
-                <Image
-                  src={profile.imagePath}
-                  alt={`${profile.name} Profile`}
-                  width={isVerySmall ? 24 : 32}
-                  height={isVerySmall ? 24 : 32}
-                  className="object-cover"
-                />
+                <div
+                  className={`${isVerySmall ? "w-6 h-6" : "w-8 h-8"} rounded-full bg-gray-200 flex items-center justify-center mr-1 sm:mr-2 overflow-hidden`}
+                >
+                  <Image
+                    src={profile.imagePath}
+                    alt={`${profile.name} Profile`}
+                    width={isVerySmall ? 24 : 32}
+                    height={isVerySmall ? 24 : 32}
+                    className="object-cover"
+                  />
+                </div>
+                <span
+                  className={`text-gray-700 font-medium ${isVerySmall ? "text-xs" : "text-sm"} truncate`}
+                >
+                  {profile.name}
+                </span>
               </div>
-              <span
-                className={`text-gray-700 font-medium ${isVerySmall ? "text-xs" : "text-sm"} truncate`}
-              >
-                {profile.name}
-              </span>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
-      {/* Content container */}
-      <div className="relative z-10 w-full max-w-[90%] sm:max-w-md px-2 sm:px-6">
+      {/* Content container with increased vertical spacing */}
+      <div className="relative z-10 w-full max-w-[90%] sm:max-w-md px-2 sm:px-6 mt-8 sm:mt-0">
         <div className="relative mt-16 sm:mt-16">
           {/* Title positioned at the top left of the input */}
           <div className="absolute -top-6 left-0 text-gray-800 font-semibold">
@@ -244,6 +312,13 @@ const handleResultClick = () => {
               className="w-full py-1.5 sm:py-3 pr-8 pl-2 sm:pl-4 bg-[transparent] rounded-lg border border-gray-300 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-xs sm:text-sm"
               placeholder="Search for a basename..."
             />
+
+            {/* Show the ".base.eth" suffix */}
+            {value && (
+              <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs sm:text-sm">
+                .base.eth
+              </div>
+            )}
 
             {/* Search Icon/Loading Indicator */}
             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -268,8 +343,15 @@ const handleResultClick = () => {
             </div>
           </div>
 
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="mt-2 text-red-500 text-xs sm:text-sm">
+              {errorMessage}
+            </div>
+          )}
+
           {/* Clickable Search Results */}
-          {searchResults && (
+          {searchResults && !errorMessage && (
             <div
               className="mt-3 sm:mt-4 overflow-hidden bg-gray-200 bg-opacity-90 rounded-lg border border-gray-300 shadow-sm cursor-pointer hover:border-blue-500 transition-all duration-200"
               onClick={handleResultClick}

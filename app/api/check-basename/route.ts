@@ -1,8 +1,7 @@
-// app/api/check-basename/route.ts
+
 import { ethers } from "ethers";
 import { NextResponse } from "next/server";
 
-// Add this export to explicitly mark this route as dynamic
 export const dynamic = "force-dynamic";
 
 const contractABI = [
