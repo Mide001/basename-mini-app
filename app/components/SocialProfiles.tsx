@@ -1,4 +1,3 @@
-// SocialProfiles.tsx
 import React from "react";
 import Link from "next/link";
 import { Twitter, Linkedin, Github, Globe, AtSign } from "lucide-react";
@@ -21,7 +20,6 @@ interface SocialProfilesProps {
   socialProfiles: SocialProfile[];
 }
 
-// Function to determine which icon to use based on social platform
 const getSocialIcon = (source: string) => {
   const iconProps = { size: 18, className: "text-white" };
 
@@ -34,13 +32,12 @@ const getSocialIcon = (source: string) => {
     case "github":
       return <Github {...iconProps} />;
     case "farcaster":
-      return <AtSign {...iconProps} />; // Using AtSign for Farcaster
+      return <AtSign {...iconProps} />;
     default:
       return <Globe {...iconProps} />;
   }
 };
 
-// Function to get background color for social platform
 const getSocialBackground = (source: string) => {
   switch (source.toLowerCase()) {
     case "twitter":
@@ -60,14 +57,12 @@ const getSocialBackground = (source: string) => {
 };
 
 const SocialProfiles: React.FC<SocialProfilesProps> = ({ socialProfiles }) => {
-  // Filter profiles to only show the requested types
   const filteredProfiles = socialProfiles.filter((profile) =>
     ["twitter", "x", "linkedin", "github", "farcaster", "basename"].includes(
       profile.source.toLowerCase(),
     ),
   );
 
-  // Group basename profiles together if there are multiple
   const basenameProfiles = filteredProfiles.filter(
     (profile) => profile.source.toLowerCase() === "basename",
   );
@@ -76,7 +71,6 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({ socialProfiles }) => {
     (profile) => profile.source.toLowerCase() !== "basename",
   );
 
-  // If no profiles to display, return nothing
   if (filteredProfiles.length === 0) {
     return null;
   }
@@ -89,7 +83,6 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({ socialProfiles }) => {
         </h3>
 
         <div className="space-y-2">
-          {/* Display non-basename profiles */}
           {nonBasenameProfiles.map((profile, index) => (
             <div key={index} className="group">
               <Link
@@ -131,7 +124,6 @@ const SocialProfiles: React.FC<SocialProfilesProps> = ({ socialProfiles }) => {
             </div>
           ))}
 
-          {/* Display basename profiles as a group if multiple exist */}
           {basenameProfiles.length > 0 && (
             <div className="group">
               <div className="flex items-center p-2 rounded-lg hover:bg-gray-50 transition-all duration-200">

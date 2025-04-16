@@ -98,7 +98,6 @@ const BasenameDetailsPage = () => {
   const [socialProfiles, setSocialProfiles] = useState<SocialProfile[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Alert state
   const [alertResponse, setAlertResponse] = useState<{
     message: string;
     success: boolean;
@@ -106,7 +105,6 @@ const BasenameDetailsPage = () => {
   const [alertEnabled, setAlertEnabled] = useState<boolean>(false);
   const [isCheckingAlert, setIsCheckingAlert] = useState<boolean>(true);
 
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const { context } = useMiniKit();
@@ -120,9 +118,7 @@ const BasenameDetailsPage = () => {
         setLoading(true);
         setError(null);
 
-        // Use the URL parameters if available
         if (ownerAddress) {
-          // Format expiry date - convert from GMT string if provided
           let formattedExpiryDate = new Date().toISOString();
           if (expiryDateStr) {
             formattedExpiryDate = new Date(expiryDateStr).toISOString();
@@ -133,12 +129,10 @@ const BasenameDetailsPage = () => {
             expiryDate: formattedExpiryDate,
           });
 
-          // Fetch social profiles with the passed owner address
           await fetchSocialProfiles(ownerAddress);
 
           setLoading(false);
         } else {
-          // Fallback to API call if no owner is passed in URL
           const response = await fetch(`/api/check-basename?name=${name}`);
 
           if (!response.ok) {
@@ -209,7 +203,6 @@ const BasenameDetailsPage = () => {
 
         if (response.ok) {
           const data = await response.json();
-          console.log("Alert status response:", data); // For debugging
           setAlertEnabled(data.enabled || false);
         } else {
           const errorData = await response.json();
@@ -284,12 +277,10 @@ const BasenameDetailsPage = () => {
     }
   };
 
-  // Helper function to truncate Ethereum address
   const truncateAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // Helper function to format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -298,7 +289,6 @@ const BasenameDetailsPage = () => {
     });
   };
 
-  // Find the main profile if available
   const mainProfile = socialProfiles.find(
     (profile) =>
       profile.source === "lens" ||
@@ -310,9 +300,8 @@ const BasenameDetailsPage = () => {
     !error ||
     (!error.includes("available") && !error.includes("not registered"));
 
-  // Handle toggling alert
   const handleToggleAlert = async () => {
-    setAlertResponse(null); // Clear previous response
+    setAlertResponse(null);
 
     if (!context?.user?.fid) {
       setAlertResponse({
@@ -326,7 +315,6 @@ const BasenameDetailsPage = () => {
     try {
       const enabledStatus = !alertEnabled;
 
-      // Prepare request body
       const requestBody: RequestBody = {
         enabled: enabledStatus,
         token: "",
@@ -337,11 +325,7 @@ const BasenameDetailsPage = () => {
           new Date().toISOString().split("T")[0],
       };
 
-      console.log("Request body:", requestBody); // Debug log
-
-      // If enabling alerts, include token and URL for notifications
       if (enabledStatus) {
-        // Request frame permissions for notifications
         const result = await addFrame();
         console.log("Result Frame: ", result);
         if (!result) {
@@ -364,11 +348,10 @@ const BasenameDetailsPage = () => {
           "Content-Type": "application/json",
           "X-Farcaster-FID": context.user.fid.toString(),
         },
-        body: JSON.stringify(requestBody), // Use the prepared requestBody object
+        body: JSON.stringify(requestBody),
       });
 
       const result = await response.json();
-      console.log("Response data:", result); // Debug log
 
       // Update UI based on response
       setAlertResponse({
@@ -384,7 +367,6 @@ const BasenameDetailsPage = () => {
         setAlertEnabled(enabledStatus);
       }
 
-      // Open the modal to show the response
       setIsModalOpen(true);
     } catch (err) {
       console.error("Error setting alert:", err);
@@ -461,7 +443,6 @@ const BasenameDetailsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-4 px-3">
       <div className="mx-auto bg-white rounded-xl overflow-hidden max-w-full">
-        {/* Back button */}
         <div className="p-3 border-b border-gray-200">
           <Link
             href="/"
@@ -624,7 +605,6 @@ const BasenameDetailsPage = () => {
               </div>
             </div>
 
-            {/* Use the optimized SocialProfiles component */}
             {socialProfiles.length > 1 && (
               <div className="mt-4">
                 <SocialProfiles socialProfiles={socialProfiles} />
@@ -643,7 +623,6 @@ const BasenameDetailsPage = () => {
           </div>
         )}
 
-        {/* Alert Modal */}
         <AlertModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

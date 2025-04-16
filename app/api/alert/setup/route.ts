@@ -1,7 +1,6 @@
 import { Redis } from "@upstash/redis";
 import {
   setUserNotificationDetails,
-  getUserNotificationDetails,
 } from "@/lib/notification";
 import { type SendNotificationRequest } from "@farcaster/frame-sdk";
 

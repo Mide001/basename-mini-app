@@ -1,7 +1,7 @@
 import React from "react";
 import { X, Share2 } from "lucide-react";
 
-// Alert Modal Component
+
 const AlertModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -13,15 +13,12 @@ const AlertModal: React.FC<{
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black bg-opacity-50"
         onClick={onClose}
       />
 
-      {/* Modal Content */}
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4 relative z-10 overflow-hidden">
-        {/* Header with close button */}
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="font-medium">{success ? "Success" : "Error"}</h3>
           <button
@@ -32,7 +29,6 @@ const AlertModal: React.FC<{
           </button>
         </div>
 
-        {/* Status Icon */}
         <div
           className={`w-16 h-16 mx-auto mt-6 flex items-center justify-center rounded-full ${
             success ? "bg-green-100" : "bg-red-100"
@@ -69,7 +65,7 @@ const AlertModal: React.FC<{
           )}
         </div>
 
-        {/* Message */}
+
         <div className="text-center px-6 py-4">
           <p
             className={`text-sm ${success ? "text-green-800" : "text-red-800"}`}
@@ -78,7 +74,7 @@ const AlertModal: React.FC<{
           </p>
         </div>
 
-        {/* Actions */}
+
         <div className="flex border-t p-4">
           {success ? (
             <>

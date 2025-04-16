@@ -17,7 +17,7 @@ function getUserBaseNameAlertKey(fid: number, baseName: string): string {
 export async function GET(request: Request) {
   const fid = request.headers.get("X-Farcaster-FID");
 
-  // Get baseName from URL query params instead of body
+  
   const url = new URL(request.url);
   const baseName = url.searchParams.get("baseName");
 

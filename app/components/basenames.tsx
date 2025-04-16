@@ -33,10 +33,8 @@ const Basenames = () => {
     height: 0,
   });
 
-  // Check if client is ready
   const [isClientReady, setIsClientReady] = useState(false);
 
-  // Handle window resize - using layout effect for faster dimension capture
   useEffect(() => {
     function handleResize() {
       setWindowSize({
@@ -46,15 +44,11 @@ const Basenames = () => {
       setIsClientReady(true);
     }
 
-    // Check if window is available
     if (typeof window !== "undefined") {
-      // Set initial size immediately
       handleResize();
 
-      // Add event listener
       window.addEventListener("resize", handleResize);
 
-      // Cleanup
       return () => window.removeEventListener("resize", handleResize);
     }
   }, []);
@@ -65,7 +59,6 @@ const Basenames = () => {
       return;
     }
 
-    // Check if name is too short (less than 3 characters)
     if (name.length < 3) {
       setErrorMessage("Name is too short. Minimum 3 characters required.");
       setSearchResults(null);
@@ -84,7 +77,6 @@ const Basenames = () => {
       const data = await response.json();
       console.log("Data: ", data);
 
-      // Store all the data returned from the API
       setSearchResults({
         name: `${name}.base.eth`,
         isAvailable: data.isAvailable,
@@ -99,7 +91,6 @@ const Basenames = () => {
     }
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedCheck = useCallback(
     debounce((name: string) => {
       if (name.trim()) {
@@ -113,15 +104,12 @@ const Basenames = () => {
     [],
   );
 
-  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Remove all dots from input to prevent users from typing "."
     const newValue = e.target.value.replace(/\./g, "");
     setValue(newValue);
 
     if (newValue.trim()) {
       setIsLoading(true);
-      // Check if name is too short immediately for UX purposes
       if (newValue.length < 3) {
         setErrorMessage("Name is too short. Minimum 3 characters required.");
       } else {
@@ -136,11 +124,10 @@ const Basenames = () => {
 
   const handleResultClick = async () => {
     if (!searchResults) return;
-    if (errorMessage) return; // Don't proceed if there's an error
+    if (errorMessage) return;
 
     const nameWithoutSuffix = searchResults.name.replace(".base.eth", "");
 
-    // Additional check to ensure minimum length requirement
     if (nameWithoutSuffix.length < 3) {
       setErrorMessage("Name is too short. Minimum 3 characters required.");
       return;
@@ -149,13 +136,11 @@ const Basenames = () => {
     console.log("Searching for name:", nameWithoutSuffix);
 
     if (searchResults.isAvailable) {
-      // Navigate to purchase page if available
       console.log(`Routing to purchase page for: ${nameWithoutSuffix}`);
       router.push(
         `/basename/purchase/${encodeURIComponent(nameWithoutSuffix)}`,
       );
     } else {
-      // For unavailable names, construct the query parameters
       const params = new URLSearchParams();
       if (searchResults.owner) params.append("owner", searchResults.owner);
       if (searchResults.expiry) params.append("expiry", searchResults.expiry);
@@ -170,9 +155,7 @@ const Basenames = () => {
   const isMobile = windowSize.width < 640;
   const isVerySmall = windowSize.width < 360;
 
-  // Updated profile positions with a clearer top/bottom separation
   const baseProfiles: Profile[] = [
-    // Top profiles
     {
       name: "jesse.base.eth",
       position: { top: "15%", left: "10%" },
@@ -189,7 +172,6 @@ const Basenames = () => {
       imagePath: "/eric.png",
     },
 
-    // Bottom profiles
     {
       name: "techwithmide.base.eth",
       position: { bottom: "25%", left: "30%" },
@@ -207,7 +189,6 @@ const Basenames = () => {
     },
   ];
 
-  // Adjust base profile positions based on screen size
   const getResponsivePosition = (
     position: Position,
     isMobile: boolean,
@@ -215,31 +196,23 @@ const Basenames = () => {
   ): Position => {
     const adjustedPosition = { ...position };
 
-    // For very small screens
     if (isVerySmall) {
-      // Adjust top profiles to be higher
       if (position.top) {
         adjustedPosition.top = `${Math.max(5, parseInt(position.top as string) - 5)}%`;
       }
 
-      // Adjust bottom profiles to be lower
       if (position.bottom) {
         adjustedPosition.bottom = `${Math.max(5, parseInt(position.bottom as string) - 5)}%`;
       }
 
-      // Handle left/right positioning for small screens
       if (position.left === "50%") {
         adjustedPosition.left = "40%";
       }
-    }
-    // For regular mobile
-    else if (isMobile) {
-      // Top profiles should be higher
+    } else if (isMobile) {
       if (position.top) {
         adjustedPosition.top = `${parseInt(position.top as string) - 2}%`;
       }
 
-      // Bottom profiles should be lower to provide more space
       if (position.bottom) {
         adjustedPosition.bottom = `${parseInt(position.bottom as string) - 2}%`;
       }
@@ -250,7 +223,6 @@ const Basenames = () => {
 
   return (
     <div className="relative flex items-center justify-center w-full h-[80vh] sm:h-screen overflow-hidden">
-      {/* Background base names with profile images */}
       <div className="absolute inset-0">
         {isClientReady &&
           baseProfiles.map((profile, index) => {
@@ -287,15 +259,12 @@ const Basenames = () => {
           })}
       </div>
 
-      {/* Content container with increased vertical spacing */}
       <div className="relative z-10 w-full max-w-[90%] sm:max-w-md px-2 sm:px-6 mt-8 sm:mt-0">
         <div className="relative mt-16 sm:mt-16">
-          {/* Title positioned at the top left of the input */}
           <div className="absolute -top-6 left-0 text-gray-800 font-semibold">
             <span className="text-xs sm:text-md">🔵 Basenames</span>
           </div>
 
-          {/* Wrapper for input and icon */}
           <div className="relative">
             <input
               type="text"
@@ -304,15 +273,12 @@ const Basenames = () => {
               className="w-full py-1.5 sm:py-3 pr-8 pl-2 sm:pl-4 bg-[transparent] rounded-lg border border-gray-300 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-xs sm:text-sm"
               placeholder="Search for a basename..."
             />
-
-            {/* Show the ".base.eth" suffix */}
             {value && (
               <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 text-xs sm:text-sm">
                 .base.eth
               </div>
             )}
 
-            {/* Search Icon/Loading Indicator */}
             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
               {isLoading ? (
                 <div className="w-3 h-3 sm:w-4 sm:h-4 border-t-2 border-blue-500 border-solid rounded-full animate-spin"></div>
@@ -335,14 +301,12 @@ const Basenames = () => {
             </div>
           </div>
 
-          {/* Error Message */}
           {errorMessage && (
             <div className="mt-2 text-red-500 text-xs sm:text-sm">
               {errorMessage}
             </div>
           )}
 
-          {/* Clickable Search Results */}
           {searchResults && !errorMessage && (
             <div
               className="mt-3 sm:mt-4 overflow-hidden bg-gray-200 bg-opacity-90 rounded-lg border border-gray-300 shadow-sm cursor-pointer hover:border-blue-500 transition-all duration-200"
